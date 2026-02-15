@@ -1,5 +1,5 @@
 # glimmerhmm
-Small, distroless-when-possible container for `glimmerhmm`.
+Small compatibility-focused container for `glimmerhmm`.
 
 ## how to use
 ```bash

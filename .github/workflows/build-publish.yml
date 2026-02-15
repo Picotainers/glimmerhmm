@@ -1,4 +1,4 @@
-name: Build and Publish Distroless glimmerhmm
+name: Build and Publish glimmerhmm
 
 on:
   push:
