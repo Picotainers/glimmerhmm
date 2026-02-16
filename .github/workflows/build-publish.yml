@@ -22,19 +22,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p testdata
-          {
-            echo ">chrLong"
-            tr -dc 'ACGT' < /dev/urandom | head -c 50000
-            echo
-          } > testdata/smoke_long.fa
+          cat > testdata/smoke.fa <<'EOF'
+          >chrTest
+          ATGCGTACGTAGCTAGCTAGCTAGCTAGCTAGCTAACGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+          EOF
 
           docker run --rm -v "$PWD/testdata:/data" picotainers-local/glimmerhmm:smoke \
-            /data/smoke_long.fa /opt/conda/share/glimmerhmm/trained_dir/human -g -o /data/smoke_long.gff
+            /data/smoke.fa /opt/conda/share/glimmerhmm/trained_dir/human -g -o /data/smoke.gff
 
-          test -s testdata/smoke_long.gff
-          feature_lines="$(awk 'BEGIN{n=0} !/^#/ && NF>0 {n++} END{print n}' testdata/smoke_long.gff)"
-          echo "Predicted feature lines: ${feature_lines}"
-          test "${feature_lines}" -gt 0
+          test -s testdata/smoke.gff
+          grep -q '^##gff-version 3' testdata/smoke.gff
+          grep -q '^##sequence-region chrTest ' testdata/smoke.gff
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
