@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1
 # Compatibility-first template for glimmerhmm.
-# Installs package from Bioconda and copies the full conda runtime to avoid missing libs/interpreters.
+# Keep tool execution inside the conda env via micromamba run to avoid missing interpreter/lib issues.
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim AS builder
+FROM mambaorg/micromamba:2.0.5-debian12-slim
 
 RUN micromamba install -y -n base -c conda-forge -c bioconda \
     glimmerhmm \
+    setuptools \
     && micromamba clean --all --yes
 
 # Resolve a runnable command for this package.
@@ -18,17 +19,46 @@ RUN set -eux; \
     test -n "$BIN"; \
     printf '%s\n' "$BIN" > /tmp/tool-entry-path
 
-FROM mambaorg/micromamba:2.0.5-debian12-slim
-
-COPY --from=builder /opt/conda /opt/conda
-COPY --from=builder /tmp/tool-entry-path /tmp/tool-entry-path
-
 USER root
-ENV PATH="/opt/conda/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/opt/conda/lib:/opt/conda/lib64"
 RUN set -eux; \
     BIN="$(cat /tmp/tool-entry-path)"; \
-    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$BIN" > /usr/local/bin/glimmerhmm
+    { \
+      echo '#!/usr/bin/env bash'; \
+      echo 'set -euo pipefail'; \
+      echo "BIN=\"$BIN\""; \
+      echo 'run_candidate() {'; \
+      echo '  local candidate="${1:-}"'; \
+      echo '  local tmp'; \
+      echo '  tmp="$(mktemp)"'; \
+      echo '  set +e'; \
+      echo '  if [ -n "$candidate" ]; then'; \
+      echo '    micromamba run -n base "$BIN" "$candidate" >"$tmp" 2>&1'; \
+      echo '  else'; \
+      echo '    micromamba run -n base "$BIN" >"$tmp" 2>&1'; \
+      echo '  fi'; \
+      echo '  local ec=$?'; \
+      echo '  set -e'; \
+      echo '  if [ "$ec" -eq 0 ]; then'; \
+      echo '    cat "$tmp"'; \
+      echo '    rm -f "$tmp"'; \
+      echo '    return 0'; \
+      echo '  fi'; \
+      echo '  if grep -Eiq "(usage|help|options|version|available|commands?)" "$tmp"; then'; \
+      echo '    cat "$tmp"'; \
+      echo '    rm -f "$tmp"'; \
+      echo '    return 0'; \
+      echo '  fi'; \
+      echo '  cat "$tmp" >&2'; \
+      echo '  rm -f "$tmp"'; \
+      echo '  return "$ec"'; \
+      echo '}'; \
+      echo 'if [ "${1:-}" = "--help" ]; then'; \
+      echo '  shift'; \
+      echo '  run_candidate "--help" || run_candidate "-h" || run_candidate "help" || run_candidate ""'; \
+      echo '  exit $?'; \
+      echo 'fi'; \
+      echo 'exec micromamba run -n base "$BIN" "$@"'; \
+    } > /usr/local/bin/glimmerhmm
 RUN chmod +x /usr/local/bin/glimmerhmm && rm -f /tmp/tool-entry-path
 WORKDIR /data
 ENTRYPOINT ["/usr/local/bin/glimmerhmm"]
