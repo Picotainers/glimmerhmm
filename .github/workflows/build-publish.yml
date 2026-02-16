@@ -15,6 +15,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build smoke-test image
+        run: docker build -t picotainers-local/glimmerhmm:smoke .
+
+      - name: Smoke test inference
+        run: |
+          set -euo pipefail
+          mkdir -p testdata
+          {
+            echo ">chrLong"
+            tr -dc 'ACGT' < /dev/urandom | head -c 50000
+            echo
+          } > testdata/smoke_long.fa
+
+          docker run --rm -v "$PWD/testdata:/data" picotainers-local/glimmerhmm:smoke \
+            /data/smoke_long.fa /opt/conda/share/glimmerhmm/trained_dir/human -g -o /data/smoke_long.gff
+
+          test -s testdata/smoke_long.gff
+          feature_lines="$(awk 'BEGIN{n=0} !/^#/ && NF>0 {n++} END{print n}' testdata/smoke_long.gff)"
+          echo "Predicted feature lines: ${feature_lines}"
+          test "${feature_lines}" -gt 0
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
