@@ -1,13 +1,24 @@
 # glimmerhmm
-Source-built GlimmerHMM container with static binaries.
 
-## how to use
+Source-built container for `glimmerhmm`, a gene prediction tool for eukaryotic genomes.
+
+## Quick Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/glimmerhmm:latest --help
+docker pull docker.io/picotainers/glimmerhmm:latest
+docker run --rm docker.io/picotainers/glimmerhmm:latest --help
 ```
 
-## prediction example
+## Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/glimmerhmm:latest \
+# run gene prediction with mounted input/output files
+docker run --rm -v "$(pwd):/data" docker.io/picotainers/glimmerhmm:latest \
   /data/genome.fa /opt/glimmerhmm/trained_dir/human -g -o /data/predictions.gff
+```
+
+## Building
+
+```bash
+docker build -t docker.io/picotainers/glimmerhmm:latest .
 ```
