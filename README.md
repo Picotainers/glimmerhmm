@@ -1,13 +1,19 @@
 # glimmerhmm
 Source-built GlimmerHMM container with static binaries.
 
-## how to use
+## Quick Usage
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/glimmerhmm:latest --help
+# Pull the image
+docker pull docker.io/picotainers/glimmerhmm:latest
+
+# Run the tool
+docker run --rm docker.io/picotainers/glimmerhmm:latest glimmerhmm --help
 ```
 
-## prediction example
+## Prediction Example
+
 ```bash
-docker run --rm -v "$(pwd):/data" picotainers/glimmerhmm:latest \
+docker run --rm -v "$(pwd):/data" docker.io/picotainers/glimmerhmm:latest \
   /data/genome.fa /opt/glimmerhmm/trained_dir/human -g -o /data/predictions.gff
 ```
